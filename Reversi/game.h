@@ -36,24 +36,37 @@ public:
 		E_BL_TR,
 	};
 
+	enum GridType {
+		E_MAYBE_TYPE,
+		E_VALID_TYPE,
+		E_OTHER_TYPE,
+	};
+
 	Board();
 
 	void Clear();
-	void Print(uint8_t* validGrids, int validGridCount);
-
-	bool TryReverseInDirection(int side, int id, ChessDirection dir, bool isChange);
+	char GetGrid(int id) { return grids[id]; }
+	void SetGrid(int id, char value, bool needReverse = true);
+	void GetValidGrids(int side, array<uint8_t, GRID_NUM> &validGrids, int &validGridCount);
+	void Print(int lastMove, uint8_t* validGrids, int validGridCount);
 
 	static int Coord2Id(int row, int col);
 	static void Id2Coord(int id, int &row, int &col);
 	static bool IsValidCoord(int row, int col);
 	static int GetOtherSide(int side);
 
-	array<char, GRID_NUM> grids;
+	int blackCount, whiteCount;
 
 private:
 	char GetGrid(int row, int col);
-	bool SetGrid(int row, int col, char value);
+
+	void MarkNearGrids(int id);
+	void CheckGridStatus(int side);
+	bool TryReverseInDirection(int side, int id, ChessDirection dir, bool isChange);
 	bool TryReverseInDirectionReal(int side, int row, int col, int dx, int dy, bool isChange);
+
+	array<char, GRID_NUM> grids;
+	array<char, GRID_NUM> gridCheckStatus;
 };
 
 class GameBase
@@ -92,9 +105,11 @@ class Game : private GameBase
 public:
 	int GetState() { return state; }
 	int GetTurn() { return turn; }
+	bool IsGameFinish() { return IsGameFinishThisTurn(); }
 
 	bool PutChess(int id);
 	void Regret(int step = 2);
+	void Reset();
 	void Print();
 
 	const vector<uint8_t>& GetRecord() { return record; }
