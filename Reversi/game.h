@@ -88,6 +88,7 @@ public:
 	int GetSide();
 	bool IsGameFinishThisTurn();
 	void UpdateValidGrids();
+	int CalcBetterSide();
 
 	Board board;
 	int state;

@@ -12,6 +12,9 @@ const float SEARCH_TIME = 1.0f;
 const int	EXPAND_THRESHOLD = 1;
 const bool	ENABLE_MULTI_THREAD = true;
 
+const float	FAST_STOP_THRESHOLD = 0.1f;
+const float	FAST_STOP_BRANCH_FACTOR = 0.01f;
+
 
 TreeNode::TreeNode(TreeNode *p)
 {
@@ -81,6 +84,9 @@ void MCTS::SearchThread(int id, int seed, MCTS *mcts, clock_t startTime)
 
 int MCTS::Search(Game *state)
 {
+	fastStopSteps = 0;
+	fastStopCount = 0;
+
 	root = NewTreeNode(NULL);
 	*(root->game) = *((GameBase*)state);
 	root->validGridCount = root->game->validGridCount;
@@ -104,6 +110,7 @@ int MCTS::Search(Game *state)
 	PrintTree(root);
 	PrintFullTree(root);
 	printf("time: %.2f, iteration: %d, depth: %d, win: %.2f%% (%d/%d)\n", float(clock() - startTime) / 1000, root->visit, maxDepth, best->value * 100 / best->visit, (int)best->value, best->visit);
+	printf("fast stop count: %d, average stop steps: %d\n", fastStopCount, fastStopSteps / (fastStopCount + 1));
 
 	ClearNodes(root);
 
@@ -188,11 +195,26 @@ float MCTS::DefaultPolicy(TreeNode *node, int id)
 {
 	gameCache[id] = *(node->game);
 
+	float weight = 1.0f;
 	while (gameCache[id].state == GameBase::E_NORMAL || gameCache[id].state == GameBase::E_PASS)
 	{
-		gameCache[id].PutRandomChess();
+		float factor = (1 - FAST_STOP_BRANCH_FACTOR * gameCache[id].validGridCount);
+		weight *= max(factor, 0.5f);
+
+		int move = gameCache[id].PutRandomChess();
+		gameCache[id].PutChess(move);
+
+		if (weight < FAST_STOP_THRESHOLD)
+		{
+			fastStopCount++;
+			fastStopSteps += gameCache[id].turn - node->game->turn;
+
+			int betterSide = gameCache[id].CalcBetterSide();
+			gameCache[id].state = betterSide; // let better side win
+		}
 	}
 	float value = (gameCache[id].state == root->game->GetSide()) ? 1.f : 0;
+	value = (value - 0.5f) * weight + 0.5f;
 
 	return value;
 }

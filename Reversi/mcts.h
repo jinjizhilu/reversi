@@ -53,7 +53,7 @@ private:
 	void RecycleTreeNode(TreeNode *node);
 	void ClearPool();
 	
-	int maxDepth;
+	int maxDepth, fastStopSteps, fastStopCount;
 	GameBase gameCache[THREAD_NUM_MAX];
 	list<TreeNode*> pool;
 	TreeNode *root;

@@ -115,17 +115,6 @@ void Board::GetValidGrids(int side, array<uint8_t, GRID_NUM> &validGrids, int &v
 	CheckGridStatus(side);
 
 	validGridCount = 0;
-
-	int cornerGrids[] = { 0, BOARD_SIZE - 1, BOARD_SIZE * (BOARD_SIZE - 1), BOARD_SIZE * BOARD_SIZE - 1 };
-	for (int i = 0; i < 4; ++i)
-	{
-		if (gridCheckStatus[cornerGrids[i]] == E_VALID_TYPE)
-		{
-			validGrids[validGridCount++] = cornerGrids[i];
-			return;
-		}
-	}
-
 	for (int i = 0; i < GRID_NUM; ++i)
 	{
 		if (gridCheckStatus[i] == E_VALID_TYPE)
@@ -404,6 +393,17 @@ bool GameBase::IsGameFinishThisTurn()
 		return true;
 
 	return false;
+}
+
+int GameBase::CalcBetterSide()
+{
+	if (board.blackCount > board.whiteCount)
+		return E_BLACK_WIN;
+
+	if (board.blackCount < board.whiteCount)
+		return E_WHITE_WIN;
+
+	return E_DRAW;
 }
 
 ///////////////////////////////////////////////////////////////////
