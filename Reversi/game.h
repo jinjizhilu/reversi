@@ -65,6 +65,9 @@ private:
 	bool TryReverseInDirection(int side, int id, ChessDirection dir, bool isChange);
 	bool TryReverseInDirectionReal(int side, int row, int col, int dx, int dy, bool isChange);
 
+	void PrintHSplitLine();
+	void PrintVSplitLine();
+
 	array<char, GRID_NUM> grids;
 	array<char, GRID_NUM> gridCheckStatus;
 };

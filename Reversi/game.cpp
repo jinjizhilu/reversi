@@ -16,6 +16,26 @@ void Board::Clear()
 	blackCount = whiteCount = 0;
 }
 
+void Board::PrintHSplitLine()
+{
+	cout << "   ";
+	for (int i = 0; i < BOARD_SIZE; ++i)
+	{
+		printf("--- ");
+	}
+	cout << endl;
+}
+
+void Board::PrintVSplitLine()
+{
+	cout << "  |";
+	for (int i = 0; i < BOARD_SIZE; ++i)
+	{
+		printf("   |");
+	}
+	cout << endl;
+}
+
 void Board::Print(int lastMove, uint8_t* validGrids, int validGridCount)
 {
 	// set valid grids
@@ -27,13 +47,15 @@ void Board::Print(int lastMove, uint8_t* validGrids, int validGridCount)
 	cout << " ";
 	for (int i = 1; i <= BOARD_SIZE; ++i)
 	{
-		printf("%2d", i);
+		printf("   %d", i);
 	}
 	cout << endl;
 
+	PrintHSplitLine();
+
 	for (int i = 0; i < BOARD_SIZE; ++i)
 	{
-		printf("%c ", 'A' + i);
+		printf("%c |", 'A' + i);
 
 		for (int j = 0; j < BOARD_SIZE; ++j)
 		{
@@ -41,28 +63,29 @@ void Board::Print(int lastMove, uint8_t* validGrids, int validGridCount)
 			int grid = grids[id];
 			if (id == lastMove)
 			{
-				cout << ((grid == E_BLACK) ? "B " : "W ");
+				cout << ((grid == E_BLACK) ? " B |" : " W |");
 				continue;
 			}
 
-			if (grid == E_EMPTY)
+			if (grid == E_BLACK)
 			{
-				cout << "- ";
-			}
-			else if (grid == E_BLACK)
-			{
-				cout << "@ ";
+				cout << " @ |";
 			}
 			else if (grid == E_WHITE)
 			{
-				cout << "O ";
+				cout << " O |";
 			}
 			else if (grid == E_LEGAL)
 			{
-				cout << "+ ";
+				cout << " + |";
+			}
+			else
+			{
+				cout << "   |";
 			}
 		}
 		cout << endl;
+		PrintHSplitLine();
 	}
 
 	// clear valid grids
@@ -442,9 +465,9 @@ void Game::Print()
 	string stateText[] = { "Normal", "Black Win!", "White Win!", "Draw", "Pass" };
 
 	cout << endl;
-	printf("=== Turn %02d, %s's turn ===\n", GetTurn(), sideText[GetSide() - 1].c_str());
-	printf("=== Current State: %s ===\n", stateText[state].c_str());
-	printf("=== Black: %02d | White: %02d ===\n", board.blackCount, board.whiteCount);
+	printf("   ==== Turn %02d, %s's turn ====\n", GetTurn(), sideText[GetSide() - 1].c_str());
+	printf("   ==== Current State: %s ====\n", stateText[state].c_str());
+	printf("   ==== Black: %02d | White: %02d ====\n\n", board.blackCount, board.whiteCount);
 	board.Print(lastMove, &(validGrids[0]), validGridCount);
 }
 
