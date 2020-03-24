@@ -431,6 +431,11 @@ int GameBase::CalcBetterSide()
 
 ///////////////////////////////////////////////////////////////////
 
+bool Game::IsGameFinish()
+{
+	return state != E_NORMAL && state != E_PASS;
+}
+
 bool Game::PutChess(int Id)
 {
 	if (GameBase::PutChess(Id))
@@ -484,6 +489,9 @@ int Game::Str2Id(const string &str)
 
 string Game::Id2Str(int id)
 {
+	if (id == -1)
+		return "pass";
+
 	int row, col;
 	Board::Id2Coord(id, row, col);
 	string result(1, row + 'A');

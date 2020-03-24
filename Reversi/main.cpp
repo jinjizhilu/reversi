@@ -146,6 +146,7 @@ int main()
 
 			g.Print();
 		}
+		cout << "    =======  Game Finish  =======\n\n";
 		g.Reset();
 	}
 

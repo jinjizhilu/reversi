@@ -109,7 +109,7 @@ class Game : private GameBase
 public:
 	int GetState() { return state; }
 	int GetTurn() { return turn; }
-	bool IsGameFinish() { return IsGameFinishThisTurn(); }
+	bool IsGameFinish();
 
 	bool PutChess(int id);
 	void Regret(int step = 2);

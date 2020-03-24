@@ -84,6 +84,11 @@ void MCTS::SearchThread(int id, int seed, MCTS *mcts, clock_t startTime)
 
 int MCTS::Search(Game *state)
 {
+	if (state->GetState() == GameBase::E_PASS)
+	{
+		return -1;
+	}
+
 	fastStopSteps = 0;
 	fastStopCount = 0;
 
