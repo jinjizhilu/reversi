@@ -3,8 +3,14 @@
 
 #define max(a, b) ((a > b) ? a : b)
 
+bool Board::IsGridPriorityDictReady = false;
+array<char, GRID_NUM> Board::gridPriorityDict;
+
 Board::Board()
 {
+	if (!Board::IsGridPriorityDictReady)
+		Board::InitGridPriorityDict();
+
 	Clear();
 }
 
@@ -14,6 +20,29 @@ void Board::Clear()
 	gridCheckStatus.fill(E_OTHER_TYPE);
 
 	blackCount = whiteCount = 0;
+}
+
+void Board::InitGridPriorityDict()
+{
+	Board::gridPriorityDict.fill(E_PRIORITY_MIDDLE);
+
+	int winningGrids[4] = { Board::Coord2Id(0, 0), Board::Coord2Id(7, 0),
+							Board::Coord2Id(0, 7), Board::Coord2Id(7, 7) };
+	for (int i = 0; i < 4; ++i)
+	{
+		Board::gridPriorityDict[winningGrids[i]] = E_PRIORITY_HIGH;
+	}
+
+	int losingGrids[12] = { Board::Coord2Id(0, 1), Board::Coord2Id(1, 0), Board::Coord2Id(1, 1),
+							Board::Coord2Id(0, 6), Board::Coord2Id(1, 7), Board::Coord2Id(1, 6),
+							Board::Coord2Id(7, 1), Board::Coord2Id(6, 0), Board::Coord2Id(6, 1),
+							Board::Coord2Id(7, 6), Board::Coord2Id(6, 7), Board::Coord2Id(6, 6)};
+	for (int i = 0; i < 12; ++i)
+	{
+		Board::gridPriorityDict[losingGrids[i]] = E_PRIORITY_LOW;
+	}
+
+	Board::IsGridPriorityDictReady = true;
 }
 
 void Board::PrintHSplitLine()
@@ -36,14 +65,8 @@ void Board::PrintVSplitLine()
 	cout << endl;
 }
 
-void Board::Print(int lastMove, uint8_t* validGrids, int validGridCount)
+void Board::Print(int lastMove)
 {
-	// set valid grids
-	for (int i = 0; i < validGridCount; ++i)
-	{
-		grids[validGrids[i]] = E_LEGAL;
-	}
-
 	cout << " ";
 	for (int i = 1; i <= BOARD_SIZE; ++i)
 	{
@@ -75,9 +98,9 @@ void Board::Print(int lastMove, uint8_t* validGrids, int validGridCount)
 			{
 				cout << " O |";
 			}
-			else if (grid == E_LEGAL)
+			else if (grid == E_EMPTY && gridCheckStatus[id] == E_VALID_TYPE)
 			{
-				cout << " + |";
+				cout << " - |";
 			}
 			else
 			{
@@ -86,12 +109,6 @@ void Board::Print(int lastMove, uint8_t* validGrids, int validGridCount)
 		}
 		cout << endl;
 		PrintHSplitLine();
-	}
-
-	// clear valid grids
-	for (int i = 0; i < validGridCount; ++i)
-	{
-		grids[validGrids[i]] = E_EMPTY;
 	}
 }
 
@@ -133,16 +150,37 @@ char Board::GetGrid(int row, int col)
 	return grids[Board::Coord2Id(row, col)];
 }
 
-void Board::GetValidGrids(int side, array<uint8_t, GRID_NUM> &validGrids, int &validGridCount)
+void Board::GetValidGrids(array<uint8_t, GRID_NUM> &validGrids, int &validGridCount)
 {
-	CheckGridStatus(side);
-
 	validGridCount = 0;
 	for (int i = 0; i < GRID_NUM; ++i)
 	{
 		if (gridCheckStatus[i] == E_VALID_TYPE)
 			validGrids[validGridCount++] = i;
 	}
+}
+
+void Board::GetValidGridsByPriority(GridPriority priority, array<uint8_t, GRID_NUM> &validGrids, int &validGridCount)
+{
+	validGridCount = 0;
+	for (int i = 0; i < GRID_NUM; ++i)
+	{
+		if (gridCheckStatus[i] == E_VALID_TYPE && Board::gridPriorityDict[i] == priority)
+			validGrids[validGridCount++] = i;
+	}
+}
+
+bool Board::IsKeyGridsValid()
+{
+	int keyGrids[4] = { 0, BOARD_SIZE - 1, BOARD_SIZE * (BOARD_SIZE - 1), BOARD_SIZE * BOARD_SIZE - 1 };
+	for (int i = 0; i < 4; ++i)
+	{
+		if (gridCheckStatus[keyGrids[i]] == E_VALID_TYPE)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void Board::MarkNearGrids(int id)
@@ -169,6 +207,8 @@ void Board::MarkNearGrids(int id)
 __declspec(noinline)
 void Board::CheckGridStatus(int side)
 {
+	hasPriority.fill(false);
+
 	for (int i = 0; i < GRID_NUM; ++i)
 	{
 		if (gridCheckStatus[i] != E_OTHER_TYPE)
@@ -179,6 +219,7 @@ void Board::CheckGridStatus(int side)
 				if (TryReverseInDirection(side, i, (ChessDirection)k, false))
 				{
 					gridCheckStatus[i] = E_VALID_TYPE;
+					hasPriority[Board::gridPriorityDict[i]] = true;
 					break;
 				}
 			}
@@ -312,6 +353,8 @@ void GameBase::Init()
 	board.Clear();
 	state = E_NORMAL;
 	validGridCount = 0;
+	lastBlackCount = 0;
+	lastWhiteCount = 0;
 
 	board.SetGrid(Game::Str2Id("D4"), Board::E_BLACK);
 	board.SetGrid(Game::Str2Id("D5"), Board::E_WHITE);
@@ -324,22 +367,15 @@ void GameBase::Init()
 __declspec(noinline)
 bool GameBase::PutChess(int id)
 {
+	lastBlackCount = board.blackCount;
+	lastWhiteCount = board.whiteCount;
+
 	if (state == E_NORMAL)
 	{
 		if (board.GetGrid(id) != Board::E_EMPTY)
 			return false;
 
-		bool isValid = false;
-		for (int i = 0; i < validGridCount; ++i)
-		{
-			if (validGrids[i] == id)
-			{
-				isValid = true;
-				break;
-			}
-		}
-
-		if (!isValid)
+		if (board.GetGridType(id) != Board::E_VALID_TYPE)
 			return false;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -396,7 +432,40 @@ bool GameBase::PutRandomChess()
 
 void GameBase::UpdateValidGrids()
 {
-	board.GetValidGrids(GetSide(), validGrids, validGridCount);
+	board.CheckGridStatus(GetSide());
+
+	for (int i = Board::E_PRIORITY_HIGH; i < Board::E_PRIORITY_MAX; ++i)
+	{
+		if (board.hasPriority[i])
+		{
+			board.GetValidGridsByPriority((Board::GridPriority)i, validGrids, validGridCount);
+			break;
+		}
+	}
+}
+
+bool GameBase::UpdateValidGridsExtra()
+{
+	if (turn < GRID_NUM / 2)
+		return false;
+
+	bool isExtra = false;
+	for (int i = Board::E_PRIORITY_HIGH; i < Board::E_PRIORITY_MAX; ++i)
+	{
+		if (board.hasPriority[i])
+		{
+			if (!isExtra)
+			{
+				isExtra = true;
+			}
+			else
+			{
+				board.GetValidGridsByPriority((Board::GridPriority)i, validGrids, validGridCount);
+				break;
+			}
+		}
+	}
+	return false;
 }
 
 int GameBase::GetSide()
@@ -418,23 +487,35 @@ bool GameBase::IsGameFinishThisTurn()
 	return false;
 }
 
+bool GameBase::IsGameFinish()
+{
+	return state != E_NORMAL && state != E_PASS;
+}
+
+bool GameBase::IsOverwhelming()
+{
+	if (turn <= GRID_NUM / 2)
+	{
+		return board.IsKeyGridsValid();
+	}
+	return false;
+}
+
 int GameBase::CalcBetterSide()
 {
-	if (board.blackCount > board.whiteCount)
+	int blackCount = lastBlackCount + board.blackCount;
+	int whiteCount = lastWhiteCount + board.whiteCount;
+
+	if (blackCount > whiteCount)
 		return E_BLACK_WIN;
 
-	if (board.blackCount < board.whiteCount)
+	if (blackCount < whiteCount)
 		return E_WHITE_WIN;
 
 	return E_DRAW;
 }
 
 ///////////////////////////////////////////////////////////////////
-
-bool Game::IsGameFinish()
-{
-	return state != E_NORMAL && state != E_PASS;
-}
 
 bool Game::PutChess(int Id)
 {
@@ -473,7 +554,7 @@ void Game::Print()
 	printf("   ==== Turn %02d, %s's turn ====\n", GetTurn(), sideText[GetSide() - 1].c_str());
 	printf("   ==== Current State: %s ====\n", stateText[state].c_str());
 	printf("   ==== Black: %02d | White: %02d ====\n\n", board.blackCount, board.whiteCount);
-	board.Print(lastMove, &(validGrids[0]), validGridCount);
+	board.Print(lastMove);
 }
 
 int Game::Str2Id(const string &str)

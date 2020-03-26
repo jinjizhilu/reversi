@@ -15,6 +15,8 @@ const bool	ENABLE_MULTI_THREAD = true;
 const float	FAST_STOP_THRESHOLD = 0.1f;
 const float	FAST_STOP_BRANCH_FACTOR = 0.01f;
 
+const bool	ENABLE_TRY_MORE_NODE = true;
+const int	TRY_MORE_NODE_THRESHOLD = 1000;
 
 TreeNode::TreeNode(TreeNode *p)
 {
@@ -23,6 +25,7 @@ TreeNode::TreeNode(TreeNode *p)
 	winRate = 0;
 	expandFactor = 0;
 	validGridCount = 0;
+	gridLevel = 0;
 	game = NULL;
 	parent = p;
 }
@@ -124,7 +127,7 @@ int MCTS::Search(Game *state)
 
 TreeNode* MCTS::TreePolicy(TreeNode *node)
 {
-	while (!node->game->IsGameFinishThisTurn())
+	while (!node->game->IsGameFinish())
 	{
 		if (node->visit < EXPAND_THRESHOLD)
 			return node;
@@ -144,6 +147,27 @@ bool MCTS::PreExpandTree(TreeNode *node)
 		int id = rand() % node->validGridCount;
 		swap(node->validGrids[id], node->validGrids[node->validGridCount - 1]);
 	}
+	else if (node->game->state == GameBase::E_PASS && node->children.empty())
+	{
+		node->validGrids[node->validGridCount++] = -1;
+	}
+	else
+	{
+		// try grids with lower priority after certain visits
+		if (ENABLE_TRY_MORE_NODE && node->gridLevel == 0 && node->visit > TRY_MORE_NODE_THRESHOLD * node->children.size())
+		{
+			if (node->game->UpdateValidGridsExtra())
+			{
+				node->gridLevel++;
+				node->validGrids = node->game->validGrids;
+				node->validGridCount = node->game->validGridCount;
+
+				int id = rand() % node->validGridCount;
+				swap(node->validGrids[id], node->validGrids[node->validGridCount - 1]);
+			}
+		}
+	}
+
 	return node->validGridCount > 0;
 }
 
@@ -201,13 +225,18 @@ float MCTS::DefaultPolicy(TreeNode *node, int id)
 	gameCache[id] = *(node->game);
 
 	float weight = 1.0f;
-	while (gameCache[id].state == GameBase::E_NORMAL || gameCache[id].state == GameBase::E_PASS)
+	while (!gameCache[id].IsGameFinish())
 	{
 		float factor = (1 - FAST_STOP_BRANCH_FACTOR * gameCache[id].validGridCount);
 		weight *= max(factor, 0.5f);
 
 		int move = gameCache[id].PutRandomChess();
 		gameCache[id].PutChess(move);
+
+		if (gameCache[id].IsOverwhelming())
+		{
+			gameCache[id].state = gameCache[id].GetSide();
+		}
 
 		if (weight < FAST_STOP_THRESHOLD)
 		{
@@ -278,6 +307,7 @@ void MCTS::RecycleTreeNode(TreeNode *node)
 	node->winRate = 0;
 	node->expandFactor = 0;
 	node->validGridCount = 0;
+	node->gridLevel = 0;
 	node->children.clear();
 
 	pool.push_back(node);
@@ -297,7 +327,7 @@ void MCTS::PrintTree(TreeNode *node, int level)
 	if (level == 1)
 	{
 		freopen_s(&fp, LOG_FILE, "a+", stdout);
-		node->game->board.Print(node->game->lastMove, &(node->game->validGrids[0]), node->game->validGridCount);
+		node->game->board.Print(node->game->lastMove);
 		fclose(stdout);
 		freopen_s(&fp, "CON", "w", stdout);
 

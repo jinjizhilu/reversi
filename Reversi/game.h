@@ -25,7 +25,8 @@ public:
 		E_INVALID,
 	};
 	
-	enum ChessDirection {
+	enum ChessDirection 
+	{
 		E_L_R,
 		E_R_L,
 		E_T_B,
@@ -36,19 +37,32 @@ public:
 		E_BL_TR,
 	};
 
-	enum GridType {
+	enum GridType
+	{
 		E_MAYBE_TYPE,
 		E_VALID_TYPE,
 		E_OTHER_TYPE,
+	};
+
+	enum GridPriority
+	{
+		E_PRIORITY_HIGH,
+		E_PRIORITY_MIDDLE,
+		E_PRIORITY_LOW,
+		E_PRIORITY_MAX,
 	};
 
 	Board();
 
 	void Clear();
 	char GetGrid(int id) { return grids[id]; }
+	char GetGridType(int id) { return gridCheckStatus[id]; }
 	void SetGrid(int id, char value, bool needReverse = true);
-	void GetValidGrids(int side, array<uint8_t, GRID_NUM> &validGrids, int &validGridCount);
-	void Print(int lastMove, uint8_t* validGrids, int validGridCount);
+	void CheckGridStatus(int side);
+	void GetValidGrids(array<uint8_t, GRID_NUM> &validGrids, int &validGridCount);
+	void GetValidGridsByPriority(GridPriority priority, array<uint8_t, GRID_NUM> &validGrids, int &validGridCount);
+	bool IsKeyGridsValid();
+	void Print(int lastMove);
 
 	static int Coord2Id(int row, int col);
 	static void Id2Coord(int id, int &row, int &col);
@@ -56,17 +70,21 @@ public:
 	static int GetOtherSide(int side);
 
 	int blackCount, whiteCount;
+	array<bool, E_PRIORITY_MAX> hasPriority;
 
 private:
 	char GetGrid(int row, int col);
 
 	void MarkNearGrids(int id);
-	void CheckGridStatus(int side);
 	bool TryReverseInDirection(int side, int id, ChessDirection dir, bool isChange);
 	bool TryReverseInDirectionReal(int side, int row, int col, int dx, int dy, bool isChange);
 
 	void PrintHSplitLine();
 	void PrintVSplitLine();
+
+	static void InitGridPriorityDict();
+	static bool IsGridPriorityDictReady;
+	static array<char, GRID_NUM> gridPriorityDict;
 
 	array<char, GRID_NUM> grids;
 	array<char, GRID_NUM> gridCheckStatus;
@@ -90,15 +108,18 @@ public:
 	bool PutRandomChess();
 	int GetSide();
 	bool IsGameFinishThisTurn();
+	bool IsGameFinish();
 	void UpdateValidGrids();
+	bool UpdateValidGridsExtra();
+	bool IsOverwhelming();
 	int CalcBetterSide();
 
 	Board board;
 	int state;
 	int turn;
 	int lastMove;
-	int blackCount;
-	int whiteCount;
+	int lastBlackCount;
+	int lastWhiteCount;
 
 	int validGridCount;
 	array<uint8_t, GRID_NUM> validGrids;
@@ -109,7 +130,7 @@ class Game : private GameBase
 public:
 	int GetState() { return state; }
 	int GetTurn() { return turn; }
-	bool IsGameFinish();
+	bool IsGameFinish() { return GameBase::IsGameFinish(); }
 
 	bool PutChess(int id);
 	void Regret(int step = 2);
