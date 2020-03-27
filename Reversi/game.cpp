@@ -434,6 +434,7 @@ void GameBase::UpdateValidGrids()
 {
 	board.CheckGridStatus(GetSide());
 
+	validGridCount = 0;
 	for (int i = Board::E_PRIORITY_HIGH; i < Board::E_PRIORITY_MAX; ++i)
 	{
 		if (board.hasPriority[i])
