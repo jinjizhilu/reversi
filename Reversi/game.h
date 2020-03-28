@@ -12,6 +12,7 @@ using namespace std;
 
 const int BOARD_SIZE = 8;
 const int GRID_NUM = BOARD_SIZE * BOARD_SIZE;
+const int GRID_PRIORITY_DICT_NUM = 16;
 
 class Board
 {
@@ -59,7 +60,6 @@ public:
 	char GetGridType(int id) { return gridCheckStatus[id]; }
 	void SetGrid(int id, char value, bool needReverse = true);
 	void CheckGridStatus(int side);
-	void GetValidGrids(array<uint8_t, GRID_NUM> &validGrids, int &validGridCount);
 	void GetValidGridsByPriority(GridPriority priority, array<uint8_t, GRID_NUM> &validGrids, int &validGridCount);
 	bool IsKeyGridsValid();
 	void Print(int lastMove);
@@ -78,16 +78,18 @@ private:
 	void MarkNearGrids(int id);
 	bool TryReverseInDirection(int side, int id, ChessDirection dir, bool isChange);
 	bool TryReverseInDirectionReal(int side, int row, int col, int dx, int dy, bool isChange);
+	void UpdatePriorityDictKey();
 
 	void PrintHSplitLine();
 	void PrintVSplitLine();
 
 	static void InitGridPriorityDict();
 	static bool IsGridPriorityDictReady;
-	static array<char, GRID_NUM> gridPriorityDict;
+	static array<array<char, GRID_NUM>, GRID_PRIORITY_DICT_NUM> gridPriorityDict;
 
 	array<char, GRID_NUM> grids;
 	array<char, GRID_NUM> gridCheckStatus;
+	int priorityDictKey;
 };
 
 class GameBase

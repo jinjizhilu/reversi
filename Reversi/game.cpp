@@ -4,7 +4,7 @@
 #define max(a, b) ((a > b) ? a : b)
 
 bool Board::IsGridPriorityDictReady = false;
-array<char, GRID_NUM> Board::gridPriorityDict;
+array<array<char, GRID_NUM>, GRID_PRIORITY_DICT_NUM> Board::gridPriorityDict;
 
 Board::Board()
 {
@@ -24,22 +24,30 @@ void Board::Clear()
 
 void Board::InitGridPriorityDict()
 {
-	Board::gridPriorityDict.fill(E_PRIORITY_MIDDLE);
-
-	int winningGrids[4] = { Board::Coord2Id(0, 0), Board::Coord2Id(7, 0),
-							Board::Coord2Id(0, 7), Board::Coord2Id(7, 7) };
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; i < GRID_PRIORITY_DICT_NUM; ++i)
 	{
-		Board::gridPriorityDict[winningGrids[i]] = E_PRIORITY_HIGH;
-	}
+		Board::gridPriorityDict[i].fill(E_PRIORITY_MIDDLE);
 
-	int losingGrids[12] = { Board::Coord2Id(0, 1), Board::Coord2Id(1, 0), Board::Coord2Id(1, 1),
-							Board::Coord2Id(0, 6), Board::Coord2Id(1, 7), Board::Coord2Id(1, 6),
-							Board::Coord2Id(7, 1), Board::Coord2Id(6, 0), Board::Coord2Id(6, 1),
-							Board::Coord2Id(7, 6), Board::Coord2Id(6, 7), Board::Coord2Id(6, 6)};
-	for (int i = 0; i < 12; ++i)
-	{
-		Board::gridPriorityDict[losingGrids[i]] = E_PRIORITY_LOW;
+		int winningGrids[4] = { Board::Coord2Id(0, 0), Board::Coord2Id(7, 0),
+								Board::Coord2Id(0, 7), Board::Coord2Id(7, 7)};
+		for (int j = 0; j < 4; ++j)
+		{
+			Board::gridPriorityDict[i][winningGrids[j]] = E_PRIORITY_HIGH;
+		}
+
+		int losingGrids[4][3] = {{Board::Coord2Id(0, 1), Board::Coord2Id(1, 0), Board::Coord2Id(1, 1) },
+								{ Board::Coord2Id(0, 6), Board::Coord2Id(1, 7), Board::Coord2Id(1, 6) },
+								{ Board::Coord2Id(7, 1), Board::Coord2Id(6, 0), Board::Coord2Id(6, 1) },
+								{ Board::Coord2Id(7, 6), Board::Coord2Id(6, 7), Board::Coord2Id(6, 6)}};
+		for (int j = 0; j < 4; ++j)
+		{
+			bool isCornerFill = i & (1 << j);
+			if (!isCornerFill)
+			{
+				for (int k = 0; k < 3; ++k)
+					Board::gridPriorityDict[i][losingGrids[j][k]] = E_PRIORITY_LOW;
+			}
+		}
 	}
 
 	Board::IsGridPriorityDictReady = true;
@@ -132,6 +140,7 @@ void Board::SetGrid(int id, char value, bool needReverse)
 
 	grids[id] = value;
 	MarkNearGrids(id);
+	UpdatePriorityDictKey();
 
 	if (needReverse)
 	{
@@ -150,22 +159,12 @@ char Board::GetGrid(int row, int col)
 	return grids[Board::Coord2Id(row, col)];
 }
 
-void Board::GetValidGrids(array<uint8_t, GRID_NUM> &validGrids, int &validGridCount)
-{
-	validGridCount = 0;
-	for (int i = 0; i < GRID_NUM; ++i)
-	{
-		if (gridCheckStatus[i] == E_VALID_TYPE)
-			validGrids[validGridCount++] = i;
-	}
-}
-
 void Board::GetValidGridsByPriority(GridPriority priority, array<uint8_t, GRID_NUM> &validGrids, int &validGridCount)
 {
 	validGridCount = 0;
 	for (int i = 0; i < GRID_NUM; ++i)
 	{
-		if (gridCheckStatus[i] == E_VALID_TYPE && Board::gridPriorityDict[i] == priority)
+		if (gridCheckStatus[i] == E_VALID_TYPE && Board::gridPriorityDict[priorityDictKey][i] == priority)
 			validGrids[validGridCount++] = i;
 	}
 }
@@ -219,7 +218,7 @@ void Board::CheckGridStatus(int side)
 				if (TryReverseInDirection(side, i, (ChessDirection)k, false))
 				{
 					gridCheckStatus[i] = E_VALID_TYPE;
-					hasPriority[Board::gridPriorityDict[i]] = true;
+					hasPriority[Board::gridPriorityDict[priorityDictKey][i]] = true;
 					break;
 				}
 			}
@@ -318,6 +317,18 @@ bool Board::TryReverseInDirectionReal(int side, int row, int col, int dx, int dy
 	return false;
 }
 
+void Board::UpdatePriorityDictKey()
+{
+	priorityDictKey = 0;
+
+	int cornerGrids[4] = { Board::Coord2Id(0, 0), Board::Coord2Id(7, 0), Board::Coord2Id(0, 7), Board::Coord2Id(7, 7) };
+	for (int i = 0; i < 4; ++i)
+	{
+		if (grids[cornerGrids[i]] != E_EMPTY)
+			priorityDictKey += (1 << i);
+	}
+}
+
 int Board::Coord2Id(int row, int col)
 {
 	return row * BOARD_SIZE + col;
@@ -356,10 +367,10 @@ void GameBase::Init()
 	lastBlackCount = 0;
 	lastWhiteCount = 0;
 
-	board.SetGrid(Game::Str2Id("D4"), Board::E_BLACK);
-	board.SetGrid(Game::Str2Id("D5"), Board::E_WHITE);
-	board.SetGrid(Game::Str2Id("E4"), Board::E_WHITE);
-	board.SetGrid(Game::Str2Id("E5"), Board::E_BLACK);
+	board.SetGrid(Game::Str2Id("D4"), Board::E_WHITE);
+	board.SetGrid(Game::Str2Id("D5"), Board::E_BLACK);
+	board.SetGrid(Game::Str2Id("E4"), Board::E_BLACK);
+	board.SetGrid(Game::Str2Id("E5"), Board::E_WHITE);
 
 	UpdateValidGrids();
 }
