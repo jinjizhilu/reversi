@@ -1,4 +1,4 @@
-#include "game.h"
+﻿#include "game.h"
 #include <cstdlib>
 
 #define max(a, b) ((a > b) ? a : b)
@@ -58,7 +58,7 @@ void Board::PrintHSplitLine()
 	cout << "   ";
 	for (int i = 0; i < BOARD_SIZE; ++i)
 	{
-		printf("--- ");
+		printf("-- ");
 	}
 	cout << endl;
 }
@@ -68,18 +68,14 @@ void Board::PrintVSplitLine()
 	cout << "  |";
 	for (int i = 0; i < BOARD_SIZE; ++i)
 	{
-		printf("   |");
+		printf("  |");
 	}
 	cout << endl;
 }
 
 void Board::Print(int lastMove)
 {
-	cout << " ";
-	for (int i = 1; i <= BOARD_SIZE; ++i)
-	{
-		printf("   %d", i);
-	}
+	cout << "   １ ２ ３ ４ ５ ６ ７ ８";
 	cout << endl;
 
 	PrintHSplitLine();
@@ -94,25 +90,25 @@ void Board::Print(int lastMove)
 			int grid = grids[id];
 			if (id == lastMove)
 			{
-				cout << ((grid == E_BLACK) ? " B |" : " W |");
+				cout << ((grid == E_BLACK) ? "★|" : "☆|");
 				continue;
 			}
 
 			if (grid == E_BLACK)
 			{
-				cout << " @ |";
+				cout << "●|";
 			}
 			else if (grid == E_WHITE)
 			{
-				cout << " O |";
+				cout << "○|";
 			}
 			else if (grid == E_EMPTY && gridCheckStatus[id] == E_VALID_TYPE)
 			{
-				cout << " - |";
+				cout << "×|";
 			}
 			else
 			{
-				cout << "   |";
+				cout << "  |";
 			}
 		}
 		cout << endl;
