@@ -53,36 +53,70 @@ void Board::InitGridPriorityDict()
 	Board::IsGridPriorityDictReady = true;
 }
 
-void Board::PrintHSplitLine()
+void Board::PrintSplitLine(int i)
 {
-	cout << "   ";
-	for (int i = 0; i < BOARD_SIZE; ++i)
+	for (int j = 0; j <= BOARD_SIZE; ++j)
 	{
-		printf("-- ");
-	}
-	cout << endl;
-}
-
-void Board::PrintVSplitLine()
-{
-	cout << "  |";
-	for (int i = 0; i < BOARD_SIZE; ++i)
-	{
-		printf("  |");
+		if (i == 0)
+		{
+			if (j == 0)
+			{
+				printf("  ┌─");
+			}
+			else if (j == BOARD_SIZE)
+			{
+				printf("──┐");
+			}
+			else
+			{
+				printf("──┬─");
+			}
+		}
+		else if (i == BOARD_SIZE)
+		{
+			if (j == 0)
+			{
+				printf("  └─");
+			}
+			else if (j == BOARD_SIZE)
+			{
+				printf("──┘");
+			}
+			else
+			{
+				printf("──┴─");
+			}
+		}
+		else
+		{
+			if (j == 0)
+			{
+				printf("  ├─");
+			}
+			else if (j == BOARD_SIZE)
+			{
+				printf("──┤");
+			}
+			else
+			{
+				printf("──┼─");
+			}
+		}
 	}
 	cout << endl;
 }
 
 void Board::Print(int lastMove)
 {
-	cout << "   １ ２ ３ ４ ５ ６ ７ ８";
+	cout << "    Ａ  Ｂ  Ｃ  Ｄ  Ｅ  Ｆ  Ｇ  Ｈ";
 	cout << endl;
 
-	PrintHSplitLine();
+	string digits[] = { "１", "２", "３", "４", "５", "６", "７", "８" };
 
+	PrintSplitLine(0);
 	for (int i = 0; i < BOARD_SIZE; ++i)
 	{
-		printf("%c |", 'A' + i);
+		cout << digits[i] << "│";
 
 		for (int j = 0; j < BOARD_SIZE; ++j)
 		{
@@ -90,29 +124,29 @@ void Board::Print(int lastMove)
 			int grid = grids[id];
 			if (id == lastMove)
 			{
-				cout << ((grid == E_BLACK) ? "★|" : "☆|");
+				cout << ((grid == E_BLACK) ? " ◎│" : " ◎│");
 				continue;
 			}
 
 			if (grid == E_BLACK)
 			{
-				cout << "●|";
+				cout << " ●│";
 			}
 			else if (grid == E_WHITE)
 			{
-				cout << "○|";
+				cout << " ○│";
 			}
 			else if (grid == E_EMPTY && gridCheckStatus[id] == E_VALID_TYPE)
 			{
-				cout << "×|";
+				cout << " ×│";
 			}
 			else
 			{
-				cout << "  |";
+				cout << "   │";
 			}
 		}
 		cout << endl;
-		PrintHSplitLine();
+		PrintSplitLine(i + 1);
 	}
 }
 
@@ -567,8 +601,8 @@ void Game::Print()
 
 int Game::Str2Id(const string &str)
 {
-	int row = str[0] - 'A';
-	int col = str[1] - '1';
+	int col = str[0] - 'A';
+	int row = str[1] - '1';
 	if (!Board::IsValidCoord(row, col))
 		return -1;
 
@@ -583,7 +617,7 @@ string Game::Id2Str(int id)
 
 	int row, col;
 	Board::Id2Coord(id, row, col);
-	string result(1, row + 'A');
-	result += col + '1';
+	string result(1, col + 'A');
+	result += row + '1';
 	return result;
 }

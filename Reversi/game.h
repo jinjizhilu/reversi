@@ -80,8 +80,7 @@ private:
 	bool TryReverseInDirectionReal(int side, int row, int col, int dx, int dy, bool isChange);
 	void UpdatePriorityDictKey();
 
-	void PrintHSplitLine();
-	void PrintVSplitLine();
+	void PrintSplitLine(int i);
 
 	static void InitGridPriorityDict();
 	static bool IsGridPriorityDictReady;
